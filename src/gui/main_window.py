@@ -61,7 +61,7 @@ class MainWindow:
         edit_menu.add_command(label="Edit Client", command=self.edit_client, accelerator="Ctrl+E")
         edit_menu.add_command(label="Delete Client", command=self.delete_client, accelerator="Delete")
         edit_menu.add_separator()
-        edit_menu.add_command(label="Copy All Data", command=self.copy_all_data, accelerator="Ctrl+C")
+        edit_menu.add_command(label="Copy All Data", command=self.copy_all_data, accelerator="Ctrl+A+C")
         
         # Tools menu
         tools_menu = tk.Menu(menubar, tearoff=0)
@@ -75,11 +75,15 @@ class MainWindow:
         # Bind keyboard shortcuts
         self.root.bind('<Control-n>', lambda e: self.new_client())
         self.root.bind('<Control-e>', lambda e: self.edit_client())
-        self.root.bind('<Control-c>', lambda e: self.copy_all_data())
+        self.root.bind('<Control-c>', self.handle_ctrl_c)
         self.root.bind('<Control-q>', lambda e: self.on_closing())
         self.root.bind('<Control-comma>', lambda e: self.show_settings())
         self.root.bind('<F5>', lambda e: self.refresh_client_list())
         self.root.bind('<Delete>', lambda e: self.delete_client())
+        
+        # Initialize Ctrl+A+C sequence tracking
+        self.ctrl_a_pressed = False
+        self.root.bind('<Control-a>', self.on_ctrl_a_pressed)
     
     def setup_main_interface(self):
         """Setup the main interface"""
@@ -248,10 +252,10 @@ class MainWindow:
         # Main copy button
         ttk.Button(
             copy_frame, 
-            text="📋 Copy All Data", 
+            text="📋 Copy All Data (Ctrl+A+C)", 
             command=self.copy_all_data,
             bootstyle=(SUCCESS, OUTLINE),
-            width=20
+            width=25
         ).pack(side=LEFT, padx=(0, 10))
         
         # Quick copy buttons
@@ -613,6 +617,49 @@ class MainWindow:
         self.search_var.set("")
         self.update_client_tree(self.clients)
     
+    def on_ctrl_a_pressed(self, event):
+        """Handle Ctrl+A press - mark that Ctrl+A was pressed"""
+        # Check if the focus is on the main window (not on text entry fields)
+        focused_widget = self.root.focus_get()
+        
+        # If focus is on Entry or Text widgets, let them handle Ctrl+A normally
+        if isinstance(focused_widget, (tk.Entry, tk.Text, ttk.Entry)):
+            return
+        
+        # Mark that Ctrl+A was pressed on the main window
+        self.ctrl_a_pressed = True
+        self.status_var.set("Ctrl+A pressed - press Ctrl+C to copy all data")
+        
+        # Reset the flag after 3 seconds if no Ctrl+C follows
+        self.root.after(3000, self.reset_ctrl_a_flag)
+    
+    def handle_ctrl_c(self, event):
+        """Handle Ctrl+C press - check if it's part of Ctrl+A+C sequence"""
+        focused_widget = self.root.focus_get()
+        
+        # If focus is on Entry or Text widgets, let them handle Ctrl+C normally for copying selected text
+        if isinstance(focused_widget, (tk.Entry, tk.Text, ttk.Entry)):
+            return
+        
+        # If Ctrl+A was pressed recently, this is the Ctrl+A+C sequence
+        if hasattr(self, 'ctrl_a_pressed') and self.ctrl_a_pressed:
+            self.copy_all_data()
+        else:
+            # Regular Ctrl+C - still copy all data but show different message
+            self.copy_all_data()
+    
+    def on_ctrl_released(self, event):
+        """Handle Ctrl key release"""
+        # Reset the flag when Ctrl is released
+        if hasattr(self, 'ctrl_a_pressed'):
+            self.ctrl_a_pressed = False
+    
+    def reset_ctrl_a_flag(self):
+        """Reset the Ctrl+A flag after timeout"""
+        if hasattr(self, 'ctrl_a_pressed') and self.ctrl_a_pressed:
+            self.ctrl_a_pressed = False
+            self.status_var.set("Ready")
+    
     def new_client(self):
         """Create a new client"""
         dialog = ClientDialog(self.root, "New Client")
@@ -694,14 +741,27 @@ class MainWindow:
     
     def copy_all_data(self):
         """Copy all client data to clipboard"""
+        # Check if this is being called as part of Ctrl+A+C sequence
+        is_ctrl_a_sequence = hasattr(self, 'ctrl_a_pressed') and self.ctrl_a_pressed
+        
+        if is_ctrl_a_sequence:
+            # This is Ctrl+A+C sequence - reset the flag
+            self.ctrl_a_pressed = False
+        
         if not self.current_client:
-            messagebox.showwarning("Warning", "Please select a client first.")
+            if is_ctrl_a_sequence:
+                messagebox.showinfo("Info", "No client selected.\n\nTo use Ctrl+A+C:\n1. Select a client from the list\n2. Press Ctrl+A (select all)\n3. Press Ctrl+C (copy all data)")
+            else:
+                messagebox.showwarning("Warning", "Please select a client first.")
             return
         
         try:
             success = copy_client_data_to_clipboard(self.current_client, self.root)
             if success:
-                messagebox.showinfo("Success", "All client data copied to clipboard!")
+                if is_ctrl_a_sequence:
+                    messagebox.showinfo("Success", f"All data for '{self.current_client.name}' copied to clipboard using Ctrl+A+C!")
+                else:
+                    messagebox.showinfo("Success", "All client data copied to clipboard!")
                 self.status_var.set("Data copied to clipboard")
             else:
                 messagebox.showerror("Error", "Failed to copy data to clipboard.")
