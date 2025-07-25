@@ -33,9 +33,11 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv sync --dev
-        # Fallback to pip if uv sync fails
-        if [ $? -ne 0 ]; then
+        # Try uv first
+        if uv sync --dev; then
+          echo "Successfully installed dependencies with uv"
+        else
+          echo "uv failed, falling back to pip"
           python -m pip install --upgrade pip
           pip install -e .[dev]
           pip install pytest pytest-cov
@@ -43,7 +45,11 @@ jobs:
     
     - name: Run tests
       run: |
-        uv run pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing || pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
+        if command -v uv >/dev/null 2>&1; then
+          uv run pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
+        else
+          pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
+        fi
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
@@ -73,7 +79,9 @@ jobs:
         try {
           uv sync
           uv add pyinstaller
+          Write-Host "Successfully installed dependencies with uv"
         } catch {
+          Write-Host "uv failed, falling back to pip"
           python -m pip install --upgrade pip
           pip install -e .
           pip install pyinstaller
@@ -82,9 +90,10 @@ jobs:
     - name: Build Windows executable
       shell: pwsh
       run: |
-        try {
+        $uvAvailable = Get-Command uv -ErrorAction SilentlyContinue
+        if ($uvAvailable) {
           uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        } catch {
+        } else {
           pyinstaller --onefile --windowed --name client-data-manager src/main.py
         }
     
@@ -114,10 +123,11 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv sync
-        uv add pyinstaller
-        # Fallback to pip if uv fails
-        if [ $? -ne 0 ]; then
+        # Try uv first
+        if uv sync && uv add pyinstaller; then
+          echo "Successfully installed dependencies with uv"
+        else
+          echo "uv failed, falling back to pip"
           python -m pip install --upgrade pip
           pip install -e .
           pip install pyinstaller
@@ -125,7 +135,11 @@ jobs:
     
     - name: Build macOS executable
       run: |
-        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py || pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        if command -v uv >/dev/null 2>&1; then
+          uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        else
+          pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        fi
     
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v3
@@ -155,10 +169,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-tk
-        uv sync
-        uv add pyinstaller
-        # Fallback to pip if uv fails
-        if [ $? -ne 0 ]; then
+        # Try uv first
+        if uv sync && uv add pyinstaller; then
+          echo "Successfully installed dependencies with uv"
+        else
+          echo "uv failed, falling back to pip"
           python -m pip install --upgrade pip
           pip install -e .
           pip install pyinstaller
@@ -166,7 +181,11 @@ jobs:
     
     - name: Build Linux executable
       run: |
-        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py || pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        if command -v uv >/dev/null 2>&1; then
+          uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        else
+          pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        fi
     
     - name: Upload Linux artifact
       uses: actions/upload-artifact@v3
@@ -190,7 +209,11 @@ jobs:
     - name: Get version
       id: version
       run: |
-        echo "VERSION=$(uv run python setup.py --version || python setup.py --version)" >> $GITHUB_OUTPUT
+        if command -v uv >/dev/null 2>&1; then
+          echo "VERSION=$(uv run python setup.py --version)" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=$(python setup.py --version)" >> $GITHUB_OUTPUT
+        fi
     
     - name: Create Release
       id: create_release

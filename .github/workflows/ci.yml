@@ -25,28 +25,48 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv sync --dev
-        # Fallback to pip if uv sync fails
-        if [ $? -ne 0 ]; then
+        # Try uv first
+        if uv sync --dev; then
+          echo "Successfully installed dependencies with uv"
+        else
+          echo "uv failed, falling back to pip"
           python -m pip install --upgrade pip
           pip install -e .[dev]
+          # Ensure all required tools are installed
+          pip install flake8 black mypy pytest pytest-cov
         fi
     
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        uv run flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics || flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings
-        uv run flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics || flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        if command -v uv >/dev/null 2>&1; then
+          uv run flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+          uv run flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        else
+          flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        fi
     
     - name: Format check with black
       run: |
-        uv run black --check src || black --check src
+        if command -v uv >/dev/null 2>&1; then
+          uv run black --check src
+        else
+          black --check src
+        fi
     
     - name: Type check with mypy
       run: |
-        uv run mypy src --ignore-missing-imports || mypy src --ignore-missing-imports
+        if command -v uv >/dev/null 2>&1; then
+          uv run mypy src --ignore-missing-imports
+        else
+          mypy src --ignore-missing-imports
+        fi
     
     - name: Test with pytest
       run: |
-        uv run pytest tests/ -v || pytest tests/ -v
+        if command -v uv >/dev/null 2>&1; then
+          uv run pytest tests/ -v
+        else
+          pytest tests/ -v
+        fi
