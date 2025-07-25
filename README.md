@@ -37,19 +37,41 @@ A modern, secure desktop application for managing client hosting, database, and 
 - Python 3.8 or higher
 - uv package manager (recommended) or pip
 
-### Using uv (Recommended)
+## Installation
+
+### Download Pre-built Executable (Recommended)
+
+Download the latest executable for your platform from the [Releases](https://github.com/artchsh/fullstack-dev-crm/releases) page:
+
+- **Windows**: `client-data-manager-windows.exe`
+- **macOS**: `client-data-manager-macos`
+- **Linux**: `client-data-manager-linux`
+
+Simply download and run - no installation required!
+
+### Development Setup
+
+#### Using uv (Recommended - Fast & Modern)
 ```bash
-# Clone or download the project
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Linux/macOS
+# or
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+
+# Clone the project
 cd client-data-manager
 
-# Install dependencies
+# Install dependencies and create virtual environment
 uv sync
 
 # Run the application
 uv run python src/main.py
+
+# Build executable
+uv run python scripts/build.py
 ```
 
-### Using pip
+#### Using pip (Alternative)
 ```bash
 # Clone or download the project
 cd client-data-manager
@@ -155,7 +177,20 @@ If you encounter issues:
 
 ## Contributing
 
-This is a personal project, but suggestions and improvements are welcome.
+This project uses automated builds and releases:
+
+- **Every commit** to master triggers automated testing and building
+- **GitHub releases** automatically build executables for all platforms
+- **PyPI publishing** happens automatically on releases
+
+For development:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `pytest`
+5. Submit a pull request
+
+See [BUILD.md](BUILD.md) for detailed build and release instructions.
 
 ## License
 

@@ -1,0 +1,241 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  release:
+    types: [published]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+        # Fallback to pip if uv sync fails
+        if [ $? -ne 0 ]; then
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          pip install pytest pytest-cov
+        fi
+    
+    - name: Run tests
+      run: |
+        uv run pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing || pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    if: github.event_name == 'push' || github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        try {
+          uv sync
+          uv add pyinstaller
+        } catch {
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+        }
+    
+    - name: Build Windows executable
+      shell: pwsh
+      run: |
+        try {
+          uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        } catch {
+          pyinstaller --onefile --windowed --name client-data-manager src/main.py
+        }
+    
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: client-data-manager-windows
+        path: dist/client-data-manager.exe
+
+  build-macos:
+    needs: test
+    runs-on: macos-latest
+    if: github.event_name == 'push' || github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      run: |
+        uv sync
+        uv add pyinstaller
+        # Fallback to pip if uv fails
+        if [ $? -ne 0 ]; then
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+        fi
+    
+    - name: Build macOS executable
+      run: |
+        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py || pyinstaller --onefile --windowed --name client-data-manager src/main.py
+    
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: client-data-manager-macos
+        path: dist/client-data-manager
+
+  build-linux:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-tk
+        uv sync
+        uv add pyinstaller
+        # Fallback to pip if uv fails
+        if [ $? -ne 0 ]; then
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+        fi
+    
+    - name: Build Linux executable
+      run: |
+        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py || pyinstaller --onefile --windowed --name client-data-manager src/main.py
+    
+    - name: Upload Linux artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: client-data-manager-linux
+        path: dist/client-data-manager
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Get version
+      id: version
+      run: |
+        echo "VERSION=$(uv run python setup.py --version || python setup.py --version)" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version.outputs.VERSION }}-${{ github.run_number }}
+        release_name: Release v${{ steps.version.outputs.VERSION }}-${{ github.run_number }}
+        body: |
+          Automated release from commit ${{ github.sha }}
+          
+          ## Downloads
+          - Windows: client-data-manager-windows.exe
+          - macOS: client-data-manager-macos
+          - Linux: client-data-manager-linux
+        draft: false
+        prerelease: true
+    
+    - name: Upload Windows Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: client-data-manager-windows/client-data-manager.exe
+        asset_name: client-data-manager-windows.exe
+        asset_content_type: application/octet-stream
+    
+    - name: Upload macOS Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: client-data-manager-macos/client-data-manager
+        asset_name: client-data-manager-macos
+        asset_content_type: application/octet-stream
+    
+    - name: Upload Linux Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: client-data-manager-linux/client-data-manager
+        asset_name: client-data-manager-linux
+        asset_content_type: application/octet-stream
