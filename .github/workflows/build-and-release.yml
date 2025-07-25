@@ -16,43 +16,34 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
     - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      uses: astral-sh/setup-uv@v3
       with:
         version: "latest"
     
     - name: Install dependencies
       run: |
-        # Try uv first
-        if uv sync --dev; then
-          echo "Successfully installed dependencies with uv"
-        else
-          echo "uv failed, falling back to pip"
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-          pip install pytest pytest-cov
-        fi
+        echo "Installing dependencies with uv..."
+        uv pip install -e .[dev]
+        echo "Dependencies installed successfully"
     
     - name: Run tests
       run: |
-        if command -v uv >/dev/null 2>&1; then
-          uv run pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
-        else
-          pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
-        fi
+        echo "Running tests with uv..."
+        uv run pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing
     
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       if: matrix.python-version == '3.11'
 
   build-windows:
@@ -64,41 +55,30 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      uses: astral-sh/setup-uv@v3
       with:
         version: "latest"
     
     - name: Install dependencies
       shell: pwsh
       run: |
-        try {
-          uv sync
-          uv add pyinstaller
-          Write-Host "Successfully installed dependencies with uv"
-        } catch {
-          Write-Host "uv failed, falling back to pip"
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pyinstaller
-        }
+        Write-Host "Installing dependencies with uv..."
+        uv pip install -e .[dev]
+        Write-Host "Dependencies installed successfully"
     
     - name: Build Windows executable
       shell: pwsh
       run: |
-        $uvAvailable = Get-Command uv -ErrorAction SilentlyContinue
-        if ($uvAvailable) {
-          uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        } else {
-          pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        }
+        Write-Host "Building Windows executable..."
+        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
     
     - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: client-data-manager-windows
         path: dist/client-data-manager.exe
@@ -112,37 +92,28 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      uses: astral-sh/setup-uv@v3
       with:
         version: "latest"
     
     - name: Install dependencies
       run: |
-        # Try uv first
-        if uv sync && uv add pyinstaller; then
-          echo "Successfully installed dependencies with uv"
-        else
-          echo "uv failed, falling back to pip"
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pyinstaller
-        fi
+        echo "Installing dependencies with uv..."
+        uv pip install -e .[dev]
+        echo "Dependencies installed successfully"
     
     - name: Build macOS executable
       run: |
-        if command -v uv >/dev/null 2>&1; then
-          uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        else
-          pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        fi
+        echo "Building macOS executable..."
+        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
     
     - name: Upload macOS artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: client-data-manager-macos
         path: dist/client-data-manager
@@ -156,12 +127,12 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      uses: astral-sh/setup-uv@v3
       with:
         version: "latest"
     
@@ -169,26 +140,17 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-tk
-        # Try uv first
-        if uv sync && uv add pyinstaller; then
-          echo "Successfully installed dependencies with uv"
-        else
-          echo "uv failed, falling back to pip"
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pyinstaller
-        fi
+        echo "Installing dependencies with uv..."
+        uv pip install -e .[dev]
+        echo "Dependencies installed successfully"
     
     - name: Build Linux executable
       run: |
-        if command -v uv >/dev/null 2>&1; then
-          uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        else
-          pyinstaller --onefile --windowed --name client-data-manager src/main.py
-        fi
+        echo "Building Linux executable..."
+        uv run pyinstaller --onefile --windowed --name client-data-manager src/main.py
     
     - name: Upload Linux artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: client-data-manager-linux
         path: dist/client-data-manager
@@ -204,7 +166,7 @@ jobs:
         fetch-depth: 0
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
     
     - name: Get version
       id: version

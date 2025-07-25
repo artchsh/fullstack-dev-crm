@@ -14,59 +14,40 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
     - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      uses: astral-sh/setup-uv@v3
       with:
         version: "latest"
     
     - name: Install dependencies
       run: |
-        # Try uv first
-        if uv sync --dev; then
-          echo "Successfully installed dependencies with uv"
-        else
-          echo "uv failed, falling back to pip"
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-          # Ensure all required tools are installed
-          pip install flake8 black mypy pytest pytest-cov
-        fi
+        echo "Installing dependencies with uv..."
+        uv pip install -e .[dev]
+        echo "Dependencies installed successfully"
     
     - name: Lint with flake8
       run: |
+        echo "Running flake8 syntax check..."
         # stop the build if there are Python syntax errors or undefined names
-        if command -v uv >/dev/null 2>&1; then
-          uv run flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
-          uv run flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
-        else
-          flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
-        fi
+        uv run flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+        echo "Running flake8 full check..."
+        uv run flake8 src --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
     
     - name: Format check with black
       run: |
-        if command -v uv >/dev/null 2>&1; then
-          uv run black --check src
-        else
-          black --check src
-        fi
+        echo "Checking code formatting with black..."
+        uv run black --check src
     
     - name: Type check with mypy
       run: |
-        if command -v uv >/dev/null 2>&1; then
-          uv run mypy src --ignore-missing-imports
-        else
-          mypy src --ignore-missing-imports
-        fi
+        echo "Running type check with mypy..."
+        uv run mypy src --ignore-missing-imports
     
     - name: Test with pytest
       run: |
-        if command -v uv >/dev/null 2>&1; then
-          uv run pytest tests/ -v
-        else
-          pytest tests/ -v
-        fi
+        echo "Running tests with pytest..."
+        uv run pytest tests/ -v
