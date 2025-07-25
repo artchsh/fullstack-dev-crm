@@ -1,0 +1,17 @@
+{
+    "api": {
+        "enabled": false,
+        "port": 8080,
+        "access_key": "client-manager-key-2025",
+        "host": "127.0.0.1"
+    },
+    "ui": {
+        "show_empty_sections": false,
+        "theme": "minty",
+        "auto_save": true
+    },
+    "database": {
+        "backup_enabled": true,
+        "backup_interval_hours": 6
+    }
+}

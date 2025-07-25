@@ -1,0 +1,12 @@
+# Client Data Manager Requirements
+# Core dependencies
+cryptography>=41.0.0
+sqlalchemy>=2.0.0
+ttkbootstrap>=1.14.0
+
+# API dependencies
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Optional dependencies
+pillow>=10.0.0  # For enhanced UI support
