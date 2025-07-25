@@ -33,6 +33,40 @@ def copy_client_data_to_clipboard(client_data, root: tk.Tk = None) -> bool:
         return False
 
 
+def copy_multiple_clients_to_clipboard(clients_data: list, root: tk.Tk = None) -> bool:
+    """Copy formatted data for multiple clients to clipboard"""
+    try:
+        if not clients_data:
+            return copy_to_clipboard("No clients selected.", root)
+        
+        formatted_sections = []
+        for client in clients_data:
+            formatted_sections.append(client.format_for_clipboard())
+        
+        all_data = f"""MULTIPLE CLIENTS DATA
+{'=' * 60}
+Total clients: {len(clients_data)}
+{'=' * 60}
+
+""" + f"\n\n{'-' * 60}\n\n".join(formatted_sections)
+        
+        return copy_to_clipboard(all_data, root)
+    except Exception as e:
+        print(f"Failed to copy multiple clients data to clipboard: {e}")
+        return False
+
+
+def copy_field_to_clipboard(field_value: str, root: tk.Tk = None) -> bool:
+    """Copy a single field value to clipboard"""
+    try:
+        if not field_value:
+            field_value = ""
+        return copy_to_clipboard(field_value, root)
+    except Exception as e:
+        print(f"Failed to copy field to clipboard: {e}")
+        return False
+
+
 def get_clipboard_content(root: tk.Tk = None) -> str:
     """Get current clipboard content"""
     try:

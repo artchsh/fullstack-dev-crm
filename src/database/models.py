@@ -97,32 +97,84 @@ class ClientData(Base):
         
         return cls(**data_copy)
     
-    def format_for_clipboard(self) -> str:
+    def format_for_clipboard(self, include_empty_sections: bool = False) -> str:
         """Format the client data for human-readable clipboard copying"""
-        return f"""CLIENT: {self.name}
-========================================
-
-HOSTING INFORMATION:
-- Service: {self.hosting_service or 'N/A'}
-- Link: {self.hosting_link or 'N/A'}
-- Login/Email: {self.hosting_login or 'N/A'}
-- Password: {self.hosting_password or 'N/A'}
-- Notes: {self.hosting_notes or 'N/A'}
-
-DATABASE INFORMATION:
-- Username: {self.db_username or 'N/A'}
-- Database Name: {self.db_name or 'N/A'}
-- Password: {self.db_password or 'N/A'}
-
-WEBSITE INFORMATION:
-- Domain: {self.domain or 'N/A'}
-- Admin Panel Link: {self.admin_panel_link or 'N/A'}
-- Admin Panel Login: {self.admin_panel_login or 'N/A'}
-- Admin Panel Password: {self.admin_panel_password or 'N/A'}
-- GitHub Repository: {self.github_repo or 'N/A'}
-
-========================================
-Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+        sections = []
+        
+        # Check if hosting section has data
+        hosting_fields = [
+            self.hosting_service, self.hosting_link, self.hosting_login, 
+            self.hosting_password, self.hosting_notes
+        ]
+        has_hosting_data = any(field for field in hosting_fields if field)
+        
+        # Check if database section has data
+        database_fields = [self.db_username, self.db_name, self.db_password]
+        has_database_data = any(field for field in database_fields if field)
+        
+        # Check if website section has data
+        website_fields = [
+            self.domain, self.admin_panel_link, self.admin_panel_login,
+            self.admin_panel_password, self.github_repo
+        ]
+        has_website_data = any(field for field in website_fields if field)
+        
+        # Add hosting section if it has data or if including empty sections
+        if has_hosting_data or include_empty_sections:
+            hosting_section = """HOSTING INFORMATION:
+- Service: {0}
+- Link: {1}
+- Login/Email: {2}
+- Password: {3}
+- Notes: {4}""".format(
+                self.hosting_service or 'N/A',
+                self.hosting_link or 'N/A', 
+                self.hosting_login or 'N/A',
+                self.hosting_password or 'N/A',
+                self.hosting_notes or 'N/A'
+            )
+            sections.append(hosting_section)
+        
+        # Add database section if it has data or if including empty sections
+        if has_database_data or include_empty_sections:
+            database_section = """DATABASE INFORMATION:
+- Username: {0}
+- Database Name: {1}
+- Password: {2}""".format(
+                self.db_username or 'N/A',
+                self.db_name or 'N/A',
+                self.db_password or 'N/A'
+            )
+            sections.append(database_section)
+        
+        # Add website section if it has data or if including empty sections
+        if has_website_data or include_empty_sections:
+            website_section = """WEBSITE INFORMATION:
+- Domain: {0}
+- Admin Panel Link: {1}
+- Admin Panel Login: {2}
+- Admin Panel Password: {3}
+- GitHub Repository: {4}""".format(
+                self.domain or 'N/A',
+                self.admin_panel_link or 'N/A',
+                self.admin_panel_login or 'N/A',
+                self.admin_panel_password or 'N/A',
+                self.github_repo or 'N/A'
+            )
+            sections.append(website_section)
+        
+        # Build the final string
+        content = f"CLIENT: {self.name}\n" + "=" * 40 + "\n"
+        
+        if sections:
+            content += "\n" + "\n\n".join(sections) + "\n"
+        else:
+            content += "\nNo data available for this client.\n"
+        
+        content += "\n" + "=" * 40 + "\n"
+        content += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        return content
     
     def update_from_dict(self, data: Dict[str, Any]):
         """Update instance from dictionary data"""

@@ -8,7 +8,7 @@ import webbrowser
 
 from database.db_manager import DatabaseManager
 from database.models import ClientData
-from utils.clipboard import copy_client_data_to_clipboard
+from utils.clipboard import copy_client_data_to_clipboard, copy_multiple_clients_to_clipboard, copy_field_to_clipboard
 from gui.dialogs import ClientDialog
 from config.app_settings import app_settings
 from gui.settings_dialog import show_settings_dialog
@@ -255,7 +255,7 @@ class MainWindow:
             text="📋 Copy All Data (Ctrl+A+C)", 
             command=self.copy_all_data,
             bootstyle=(SUCCESS, OUTLINE),
-            width=25
+            width=28
         ).pack(side=LEFT, padx=(0, 10))
         
         # Quick copy buttons
@@ -332,27 +332,51 @@ class MainWindow:
         ttk.Label(self.hosting_frame, text="Hosting Service:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 10), padx=(0, 15))
         self.hosting_service_var = tk.StringVar()
-        service_entry = ttk.Entry(self.hosting_frame, textvariable=self.hosting_service_var, 
+        
+        service_frame = ttk.Frame(self.hosting_frame)
+        service_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 10))
+        service_frame.columnconfigure(0, weight=1)
+        
+        service_entry = ttk.Entry(service_frame, textvariable=self.hosting_service_var, 
                                  state="readonly", font=("Segoe UI", 10))
-        service_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 10))
+        service_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(service_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.hosting_service_var.get(), "Hosting Service")).grid(row=0, column=1)
         row += 1
         
         # Link
         ttk.Label(self.hosting_frame, text="Service Link:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 10), padx=(0, 15))
         self.hosting_link_var = tk.StringVar()
-        link_entry = ttk.Entry(self.hosting_frame, textvariable=self.hosting_link_var, 
+        
+        link_frame = ttk.Frame(self.hosting_frame)
+        link_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 10))
+        link_frame.columnconfigure(0, weight=1)
+        
+        link_entry = ttk.Entry(link_frame, textvariable=self.hosting_link_var, 
                               state="readonly", font=("Segoe UI", 10))
-        link_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 10))
+        link_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(link_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.hosting_link_var.get(), "Hosting Link")).grid(row=0, column=1)
         row += 1
         
         # Login/Email
         ttk.Label(self.hosting_frame, text="Login/Email:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 10), padx=(0, 15))
         self.hosting_login_var = tk.StringVar()
-        login_entry = ttk.Entry(self.hosting_frame, textvariable=self.hosting_login_var, 
+        
+        login_frame = ttk.Frame(self.hosting_frame)
+        login_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 10))
+        login_frame.columnconfigure(0, weight=1)
+        
+        login_entry = ttk.Entry(login_frame, textvariable=self.hosting_login_var, 
                                state="readonly", font=("Segoe UI", 10))
-        login_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 10))
+        login_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(login_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.hosting_login_var.get(), "Hosting Login")).grid(row=0, column=1)
         row += 1
         
         # Password
@@ -369,14 +393,24 @@ class MainWindow:
         
         self.hosting_show_btn = ttk.Button(password_frame, text="👁", width=3,
                                           command=lambda: self.toggle_password(self.hosting_password_entry, self.hosting_show_btn))
-        self.hosting_show_btn.grid(row=0, column=1)
+        self.hosting_show_btn.grid(row=0, column=1, padx=(0, 5))
+        
+        ttk.Button(password_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.hosting_password_var.get(), "Hosting Password")).grid(row=0, column=2)
         row += 1
         
         # Notes
-        ttk.Label(self.hosting_frame, text="Notes:", font=("Segoe UI", 10, "bold")).grid(
-            row=row, column=0, sticky=NW, pady=(0, 10), padx=(0, 15))
+        notes_header_frame = ttk.Frame(self.hosting_frame)
+        notes_header_frame.grid(row=row, column=0, columnspan=2, sticky=(W, E), pady=(0, 5))
+        notes_header_frame.columnconfigure(0, weight=1)
+        
+        ttk.Label(notes_header_frame, text="Notes:", font=("Segoe UI", 10, "bold")).pack(side=LEFT)
+        ttk.Button(notes_header_frame, text="📋 Copy Notes", 
+                  command=lambda: self.copy_field(self.hosting_notes_text.get(1.0, tk.END).strip(), "Hosting Notes")).pack(side=RIGHT)
+        row += 1
+        
         notes_frame = ttk.Frame(self.hosting_frame)
-        notes_frame.grid(row=row, column=1, sticky=(W, E, N, S), pady=(0, 10))
+        notes_frame.grid(row=row, column=0, columnspan=2, sticky=(W, E, N, S), pady=(0, 10))
         notes_frame.columnconfigure(0, weight=1)
         notes_frame.rowconfigure(0, weight=1)
         
@@ -404,18 +438,34 @@ class MainWindow:
         ttk.Label(database_frame, text="Username:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 15), padx=(0, 15))
         self.db_username_var = tk.StringVar()
-        username_entry = ttk.Entry(database_frame, textvariable=self.db_username_var, 
+        
+        username_frame = ttk.Frame(database_frame)
+        username_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        username_frame.columnconfigure(0, weight=1)
+        
+        username_entry = ttk.Entry(username_frame, textvariable=self.db_username_var, 
                                   state="readonly", font=("Segoe UI", 10))
-        username_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        username_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(username_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.db_username_var.get(), "Database Username")).grid(row=0, column=1)
         row += 1
         
         # Database Name
         ttk.Label(database_frame, text="Database Name:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 15), padx=(0, 15))
         self.db_name_var = tk.StringVar()
-        dbname_entry = ttk.Entry(database_frame, textvariable=self.db_name_var, 
+        
+        dbname_frame = ttk.Frame(database_frame)
+        dbname_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        dbname_frame.columnconfigure(0, weight=1)
+        
+        dbname_entry = ttk.Entry(dbname_frame, textvariable=self.db_name_var, 
                                 state="readonly", font=("Segoe UI", 10))
-        dbname_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        dbname_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(dbname_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.db_name_var.get(), "Database Name")).grid(row=0, column=1)
         row += 1
         
         # Password
@@ -432,7 +482,10 @@ class MainWindow:
         
         self.db_show_btn = ttk.Button(db_password_frame, text="👁", width=3,
                                      command=lambda: self.toggle_password(self.db_password_entry, self.db_show_btn))
-        self.db_show_btn.grid(row=0, column=1)
+        self.db_show_btn.grid(row=0, column=1, padx=(0, 5))
+        
+        ttk.Button(db_password_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.db_password_var.get(), "Database Password")).grid(row=0, column=2)
     
     def setup_website_tab(self):
         """Setup the website information tab"""
@@ -448,27 +501,51 @@ class MainWindow:
         ttk.Label(website_frame, text="Domain:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 15), padx=(0, 15))
         self.domain_var = tk.StringVar()
-        domain_entry = ttk.Entry(website_frame, textvariable=self.domain_var, 
+        
+        domain_frame = ttk.Frame(website_frame)
+        domain_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        domain_frame.columnconfigure(0, weight=1)
+        
+        domain_entry = ttk.Entry(domain_frame, textvariable=self.domain_var, 
                                 state="readonly", font=("Segoe UI", 10))
-        domain_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        domain_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(domain_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.domain_var.get(), "Domain")).grid(row=0, column=1)
         row += 1
         
         # Admin Panel Link
         ttk.Label(website_frame, text="Admin Panel Link:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 15), padx=(0, 15))
         self.admin_panel_link_var = tk.StringVar()
-        panel_link_entry = ttk.Entry(website_frame, textvariable=self.admin_panel_link_var, 
+        
+        panel_link_frame = ttk.Frame(website_frame)
+        panel_link_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        panel_link_frame.columnconfigure(0, weight=1)
+        
+        panel_link_entry = ttk.Entry(panel_link_frame, textvariable=self.admin_panel_link_var, 
                                     state="readonly", font=("Segoe UI", 10))
-        panel_link_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        panel_link_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(panel_link_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.admin_panel_link_var.get(), "Admin Panel Link")).grid(row=0, column=1)
         row += 1
         
         # Admin Panel Login
         ttk.Label(website_frame, text="Admin Panel Login:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 15), padx=(0, 15))
         self.admin_panel_login_var = tk.StringVar()
-        panel_login_entry = ttk.Entry(website_frame, textvariable=self.admin_panel_login_var, 
+        
+        panel_login_frame = ttk.Frame(website_frame)
+        panel_login_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        panel_login_frame.columnconfigure(0, weight=1)
+        
+        panel_login_entry = ttk.Entry(panel_login_frame, textvariable=self.admin_panel_login_var, 
                                      state="readonly", font=("Segoe UI", 10))
-        panel_login_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        panel_login_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(panel_login_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.admin_panel_login_var.get(), "Admin Panel Login")).grid(row=0, column=1)
         row += 1
         
         # Admin Panel Password
@@ -485,16 +562,27 @@ class MainWindow:
         
         self.admin_show_btn = ttk.Button(admin_password_frame, text="👁", width=3,
                                         command=lambda: self.toggle_password(self.admin_panel_password_entry, self.admin_show_btn))
-        self.admin_show_btn.grid(row=0, column=1)
+        self.admin_show_btn.grid(row=0, column=1, padx=(0, 5))
+        
+        ttk.Button(admin_password_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.admin_panel_password_var.get(), "Admin Panel Password")).grid(row=0, column=2)
         row += 1
         
         # GitHub Repository
         ttk.Label(website_frame, text="GitHub Repository:", font=("Segoe UI", 10, "bold")).grid(
             row=row, column=0, sticky=W, pady=(0, 15), padx=(0, 15))
         self.github_repo_var = tk.StringVar()
-        github_entry = ttk.Entry(website_frame, textvariable=self.github_repo_var, 
+        
+        github_frame = ttk.Frame(website_frame)
+        github_frame.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        github_frame.columnconfigure(0, weight=1)
+        
+        github_entry = ttk.Entry(github_frame, textvariable=self.github_repo_var, 
                                 state="readonly", font=("Segoe UI", 10))
-        github_entry.grid(row=row, column=1, sticky=(W, E), pady=(0, 15))
+        github_entry.grid(row=0, column=0, sticky=(W, E), padx=(0, 5))
+        
+        ttk.Button(github_frame, text="📋", width=3,
+                  command=lambda: self.copy_field(self.github_repo_var.get(), "GitHub Repository")).grid(row=0, column=1)
     
     def setup_status_bar(self, parent):
         """Setup status bar"""
@@ -641,11 +729,26 @@ class MainWindow:
         if isinstance(focused_widget, (tk.Entry, tk.Text, ttk.Entry)):
             return
         
-        # If Ctrl+A was pressed recently, this is the Ctrl+A+C sequence
-        if hasattr(self, 'ctrl_a_pressed') and self.ctrl_a_pressed:
-            self.copy_all_data()
+        # Check if there's no client selected but we have clients available
+        if not self.current_client and self.clients:
+            # If Ctrl+A was pressed recently, copy all clients
+            if hasattr(self, 'ctrl_a_pressed') and self.ctrl_a_pressed:
+                self.copy_all_data()
+            else:
+                # Regular Ctrl+C without selection - copy all clients
+                try:
+                    success = copy_multiple_clients_to_clipboard(self.clients, self.root)
+                    if success:
+                        messagebox.showinfo("Success", f"All data for {len(self.clients)} clients copied to clipboard!")
+                        self.status_var.set(f"All {len(self.clients)} clients data copied")
+                    else:
+                        messagebox.showerror("Error", "Failed to copy data to clipboard.")
+                        self.status_var.set("Error copying data")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to copy data: {e}")
+                    self.status_var.set("Error copying data")
         else:
-            # Regular Ctrl+C - still copy all data but show different message
+            # If Ctrl+A was pressed recently or normal single client copy
             self.copy_all_data()
     
     def on_ctrl_released(self, event):
@@ -739,6 +842,18 @@ class MainWindow:
         
         self.status_var.set("Ready")
     
+    def copy_field(self, field_value: str, field_name: str):
+        """Copy a single field value to clipboard"""
+        try:
+            success = copy_field_to_clipboard(field_value, self.root)
+            if success:
+                self.status_var.set(f"{field_name} copied to clipboard")
+                # Don't show message box for individual field copies to avoid spam
+            else:
+                self.status_var.set(f"Error copying {field_name}")
+        except Exception as e:
+            self.status_var.set(f"Error copying {field_name}")
+    
     def copy_all_data(self):
         """Copy all client data to clipboard"""
         # Check if this is being called as part of Ctrl+A+C sequence
@@ -748,6 +863,34 @@ class MainWindow:
             # This is Ctrl+A+C sequence - reset the flag
             self.ctrl_a_pressed = False
         
+        # Check if multiple clients are selected or if no specific client is selected but we have clients
+        selected_items = self.client_tree.selection()
+        
+        if not selected_items and not self.current_client:
+            if is_ctrl_a_sequence:
+                # If Ctrl+A+C and no selection, copy all clients
+                if self.clients:
+                    try:
+                        success = copy_multiple_clients_to_clipboard(self.clients, self.root)
+                        if success:
+                            messagebox.showinfo("Success", f"All data for {len(self.clients)} clients copied to clipboard using Ctrl+A+C!")
+                            self.status_var.set(f"All {len(self.clients)} clients data copied")
+                        else:
+                            messagebox.showerror("Error", "Failed to copy data to clipboard.")
+                            self.status_var.set("Error copying data")
+                        return
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Failed to copy data: {e}")
+                        self.status_var.set("Error copying data")
+                        return
+                else:
+                    messagebox.showinfo("Info", "No clients available to copy.")
+                    return
+            else:
+                messagebox.showwarning("Warning", "Please select a client first.")
+                return
+        
+        # Handle single client selection
         if not self.current_client:
             if is_ctrl_a_sequence:
                 messagebox.showinfo("Info", "No client selected.\n\nTo use Ctrl+A+C:\n1. Select a client from the list\n2. Press Ctrl+A (select all)\n3. Press Ctrl+C (copy all data)")
