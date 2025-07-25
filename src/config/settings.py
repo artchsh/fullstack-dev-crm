@@ -16,9 +16,9 @@ DATABASE_FILE = DATA_DIR / "client_data.db"
 # Application configuration
 class Config:
     # Application info
-    APP_TITLE = "Client Data Manager"
+    APP_TITLE = "Full-stack Dev CDM"
     VERSION = "1.0.0"
-    AUTHOR = "Client Data Manager"
+    AUTHOR = "Artyom Chshyogolev"
     DESCRIPTION = "Secure client data management application"
     
     # Paths
@@ -32,8 +32,8 @@ class Config:
     # UI settings
     WINDOW_MIN_WIDTH = 800
     WINDOW_MIN_HEIGHT = 600
-    WINDOW_DEFAULT_WIDTH = 1000
-    WINDOW_DEFAULT_HEIGHT = 700
+    WINDOW_DEFAULT_WIDTH = 1280
+    WINDOW_DEFAULT_HEIGHT = 720
     
     # Security settings
     PASSWORD_MIN_LENGTH = 8

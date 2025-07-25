@@ -15,7 +15,7 @@ class SettingsDialog:
         # Create dialog window
         self.dialog = ttk.Toplevel(parent)
         self.dialog.title("Settings")
-        self.dialog.geometry("600x500")
+        self.dialog.geometry("950x900")
         self.dialog.resizable(True, True)
         self.dialog.transient(parent)
         self.dialog.grab_set()
